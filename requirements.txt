@@ -1,0 +1,7 @@
+google_play_scraper
+pandas
+nltk
+scikit-learn
+matplotlib
+seaborn
+gensim
