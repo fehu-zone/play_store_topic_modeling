@@ -2,7 +2,7 @@ from google_play_scraper import reviews
 import pandas as pd
 import os
 
-def fetch_and_save_reviews(app_id, lang='en', country='us', count=3000, save_path="data/"):
+def fetch_and_save_reviews(app_id, lang='en', country='us', count=200, save_path="data/"):
     """
     Google Play Store'dan belirtilen uygulama ID'sine göre yorumları çeker ve CSV olarak kaydeder.
     """

@@ -4,7 +4,6 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 import re
 from spellchecker import SpellChecker
-from multiprocessing import Pool
 
 # NLTK durak kelimeleri indir
 nltk.download('stopwords')
@@ -50,12 +49,9 @@ def load_and_preprocess_data(file_path):
     df_cleaned['content'] = df_cleaned['content'].str.replace(r'[^\w\s]', '', regex=True)  # Özel karakterleri kaldır
     df_cleaned['content'] = df_cleaned['content'].str.strip()  # Boşlukları kaldır
 
-    # Yazım hatalarını düzelt
+    # Yazım hatalarını düzelt ve metinleri ön işlemeden geçir
     df_cleaned['content'] = df_cleaned['content'].apply(correct_spelling)
-
-    # Paralel işlem için Pool kullanma
-    with Pool() as pool:
-        df_cleaned['content'] = pool.map(preprocess_text, df_cleaned['content'])
+    df_cleaned['content'] = df_cleaned['content'].apply(preprocess_text)
 
     print("Temizlenmiş veri:\n", df_cleaned.head())  # İlk 5 veriyi yazdır
     print("Temizlenmiş veri sayısı:", len(df_cleaned))  # Temizlenmiş veri sayısını yazdır
