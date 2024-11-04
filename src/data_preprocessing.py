@@ -30,18 +30,23 @@ def correct_spelling(text):
 
     for word in words:
         candidates = spell.candidates(word)
-        if candidates:
-            corrected_words.append(next(iter(candidates)))
-        else:
-            corrected_words.append(word)
+        # En olası aday kelimeyi al
+        corrected_word = spell.correction(word)
+        corrected_words.append(corrected_word if corrected_word else word)
 
     corrected_text = ' '.join(corrected_words)
     return corrected_text
 
 # Metin ön işleme fonksiyonu
 def preprocess_text(text):
+    # Durak kelimeleri ve kök bulma işlemi için hazırlık
     stop_words = set(stopwords.words('english'))
     ps = PorterStemmer()
+    
+    # Metindeki özel karakterleri temizle
+    text = re.sub(r'[^\w\s]', '', text)
+    
+    # Kelimeleri köklerine indir ve durak kelimeleri çıkar
     words = text.split()
     words = [ps.stem(word) for word in words if word not in stop_words and len(word) > 2]
     return ' '.join(words)
@@ -61,7 +66,8 @@ def load_and_preprocess_data(file_path):
     df['content'] = df['content'].apply(correct_spelling)
     df['content'] = df['content'].apply(preprocess_text)
     
-    print("Temizlenmiş veri sayısı:", len(df))  # Temizlenmiş veri sayısını yazdır
+    # Temizlenmiş veri sayısını yazdır
+    print("Temizlenmiş veri sayısı:", len(df))
     
     # Temizlenmiş veriyi yeni bir CSV dosyasına kaydet
     df.to_csv('data/cleaned_whatsapp_reviews.csv', index=False)
