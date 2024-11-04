@@ -4,9 +4,23 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 import re
 from spellchecker import SpellChecker
+from langdetect import detect
 
-# NLTK durak kelimeleri indir
+# NLTK durak kelimelerini indir
 nltk.download('stopwords')
+
+# Dil filtresi
+def is_english(text):
+    try:
+        return detect(text) == 'en'
+    except:
+        return False
+
+# Fiil içerikli veya tek kelimelik yorumları temizleyen fonksiyon
+def remove_unwanted_verbs(text):
+    verbs_to_exclude = {"must", "need", "try", "want"}
+    words = text.split()
+    return len(words) > 1 and not all(word in verbs_to_exclude for word in words)
 
 # Yazım düzeltme fonksiyonu
 def correct_spelling(text):
@@ -15,10 +29,8 @@ def correct_spelling(text):
     corrected_words = []
 
     for word in words:
-        # SpellChecker'dan önerilen kelimeleri al
         candidates = spell.candidates(word)
         if candidates:
-            # İlk önerilen kelimeyi al (ya da orijinal kelimeyi döndür)
             corrected_words.append(next(iter(candidates)))
         else:
             corrected_words.append(word)
@@ -26,7 +38,7 @@ def correct_spelling(text):
     corrected_text = ' '.join(corrected_words)
     return corrected_text
 
-# Tek harfli ve iki harfli kelimeleri çıkarıp durak kelimeleri temizleyen fonksiyon
+# Metin ön işleme fonksiyonu
 def preprocess_text(text):
     stop_words = set(stopwords.words('english'))
     ps = PorterStemmer()
@@ -34,33 +46,24 @@ def preprocess_text(text):
     words = [ps.stem(word) for word in words if word not in stop_words and len(word) > 2]
     return ' '.join(words)
 
+# Veri yükleme ve ön işleme
 def load_and_preprocess_data(file_path):
     # Veriyi oku
     df = pd.read_csv(file_path)
-
-    # Eksik değerlerin kontrolü
-    print("Eksik değerler:\n", df.isnull().sum())
-
-    # Temizleme işlemleri
-    df_cleaned = df[['content']].dropna()  # Sadece içerik sütunu ve eksik verileri kaldır
-
-    # Metin temizleme
-    df_cleaned['content'] = df_cleaned['content'].str.lower()  # Küçük harfe çevir
-    df_cleaned['content'] = df_cleaned['content'].str.replace(r'[^\w\s]', '', regex=True)  # Özel karakterleri kaldır
-    df_cleaned['content'] = df_cleaned['content'].str.strip()  # Boşlukları kaldır
-
-    # Yazım hatalarını düzelt ve metinleri ön işlemeden geçir
-    df_cleaned['content'] = df_cleaned['content'].apply(correct_spelling)
-    df_cleaned['content'] = df_cleaned['content'].apply(preprocess_text)
-
-    print("Temizlenmiş veri:\n", df_cleaned.head())  # İlk 5 veriyi yazdır
-    print("Temizlenmiş veri sayısı:", len(df_cleaned))  # Temizlenmiş veri sayısını yazdır
-
+    
+    # İngilizce dışındaki yorumları kaldır
+    df = df[df['content'].apply(is_english)]
+    
+    # Tek kelimelik veya yalnızca fiil içeren yorumları çıkar
+    df = df[df['content'].apply(remove_unwanted_verbs)]
+    
+    # Yazım hatalarını düzelt ve metinleri temizle
+    df['content'] = df['content'].apply(correct_spelling)
+    df['content'] = df['content'].apply(preprocess_text)
+    
+    print("Temizlenmiş veri sayısı:", len(df))  # Temizlenmiş veri sayısını yazdır
+    
     # Temizlenmiş veriyi yeni bir CSV dosyasına kaydet
-    df_cleaned.to_csv('data/cleaned_whatsapp_reviews.csv', index=False)
+    df.to_csv('data/cleaned_whatsapp_reviews.csv', index=False)
 
-    return df_cleaned
-
-# Eğer bu dosya doğrudan çalıştırılırsa, örnek dosya yolu ile fonksiyonu çağır
-if __name__ == "__main__":
-    cleaned_data = load_and_preprocess_data('data/com.whatsapp_reviews.csv')
+    return df
